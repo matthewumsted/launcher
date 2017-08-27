@@ -1,5 +1,6 @@
 #include<Servo.h>
 #include <CurieBLE.h>
+#include "SimpleTimer.h"
 
 //Bluetooth setup
 BLEPeripheral blePeripheral;
@@ -18,6 +19,11 @@ int BRJagPin = 3;
 int v = 1500;
 int m = 0;
 
+// timer used to stop bot if command not received in delay
+SimpleTimer timer;
+bool commandProcessed =true;
+#define TIMER_DELAY_MS 2000  // millisecs
+
 
 void setup() {
   FLJaguar.attach(FLJagPin);
@@ -27,10 +33,23 @@ void setup() {
   Serial.begin(57600);
 
   bleInitialize();
+
+  timer.setInterval(TIMER_DELAY_MS, safetyCheck);
 }
 
 void loop() {
   blePeripheral.poll();
+  timer.run();
+}
+
+void safetyCheck() {
+  if(!commandProcessed){
+    // stop if command not received within delay
+    stay();
+  } else {
+    // do nothing
+  }
+  commandProcessed = false;
 }
 
 void stay(){
@@ -108,6 +127,7 @@ void actions(char command){
       rotCCW();
       break;
   }
+  commandProcessed = true;
 }
 
 
@@ -149,6 +169,7 @@ void blePeripheralDisconnectHandler(BLECentral& central){
   Serial.print("Disconnected event, central: ");
   Serial.println(central.address());
   // todo: stop bot here
+  stay();
 }
 
 
